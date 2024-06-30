@@ -1,5 +1,6 @@
 from copy import deepcopy
 import numpy as np
+import sys
 
 # Função mostrar matriz
 def print_matrizes(mat):
@@ -22,7 +23,7 @@ def print_resultado(funciona, otima, basicas, fx):
 # Função para calcular as submatrizes básicas e não básicas
 def calcular_submatriz(matrizA, vetorX):
     subMatriz = []
-    for j in range (len(matrizA)):
+    for j in range(len(matrizA)):
         linha = []
         for i in range(len(vetorX)):
             linha.append(matrizA[j][vetorX[i]])
@@ -33,41 +34,63 @@ def calcular_submatriz(matrizA, vetorX):
 def troca_linhas(matriz, i, j):
     matriz[i], matriz[j] = matriz[j], matriz[i]
 
-# Função para calcular a inversa 
-def calcular_inversa(matrizA):
-    n = len(matrizA)
-    I = np.identity(n)
-    det = np.linalg.det(matrizA)
-    if det != 0:
-        AID = np.hstack((matrizA, I))
+# Função para calcular a inversa
+def calcular_inversa(matrizBasica):
+    def fimExecucao():
+        print("Fim da Execução")
+        sys.exit(0)
 
-        for i in range(n):
-            pivo = AID[i][i]
+    def identidade(idt, k):
+        for i in range(k):
+            for j in range(k):
+                if i == j:
+                    idt[i][j + k] = 1
+        return idt
 
-            if pivo == 0:
-                for j in range(i + 1, n):
-                    if AID[j, i] != 0:
-                        AID[[i, j]] = AID[[j, i]]
+    def matrizAumentada(matIni, k):
+        m = np.zeros((k, 2 * k))
+        for i in range(k):
+            for j in range(k):
+                m[i][j] = matIni[i][j]
+        m = identidade(m, k)
+        return m
+
+    def gaussJordan(mat, k):
+        for i in range(k):
+            if mat[i][i] == 0.0:
+                for p in range(i + 1, k):
+                    if mat[p][i] != 0.0:
+                        mat[[i, p]] = mat[[p, i]]
                         break
-                else:
-                    print('Matriz não possui inversa')
-                    return None
+            for j in range(k):
+                if i != j:
+                    ratio = mat[j][i] / mat[i][i]
+                    for l in range(2 * k):
+                        mat[j][l] -= ratio * mat[i][l]
+        for i in range(k):
+            divisor = mat[i][i]
+            for j in range(2 * k):
+                mat[i][j] /= divisor
+        return mat
 
-                pivo = AID[i, i]
+    def divideMatriz(matriz, k):
+        matR = np.zeros((k, k))
+        for i in range(k):
+            for j in range(k):
+                matR[i][j] = matriz[i][j + k]
+        return matR
 
-            AID[i] /= pivo
+    tam = len(matrizBasica)
+    det = np.linalg.det(matrizBasica)
 
-            for j in range(n):
-                if j != i:
-                    multiplicador = AID[j, i]
-                    AID[j] -= multiplicador * AID[i]
-
-        inversa = AID[:, n:]
-        return inversa
+    if det != 0.0:
+        matrizA = matrizAumentada(matrizBasica, tam)
+        inversa = gaussJordan(matrizA, tam)
+        final = divideMatriz(inversa, tam)
+        return final
     else:
-        print('Matriz não possui inversa')
-        return None
-
+        print("Determinante Inválido -- inversa não possível")
+        fimExecucao()
 
 # Simplex
 # Fase I
@@ -79,7 +102,7 @@ def separa_matriz(funcaoObjetivo, restricoes):
         cond = restricoes[i][-2]
         if cond != '=':
             funcaoObjetivo.append(0.0)
-            if cond == '<=':
+            if(cond == '<='):
                 ineq.append(1.0)
             else:
                 ineq.append(-1.0)
@@ -91,7 +114,7 @@ def separa_matriz(funcaoObjetivo, restricoes):
         linha = restricoes[i][:-2]
         tamanho2 = len(ineq)
         for j in range(tamanho2):
-            if i == j:
+            if (i == j):
                 linha.append(ineq[j])
             else:
                 linha.append(0.0)
@@ -101,13 +124,13 @@ def separa_matriz(funcaoObjetivo, restricoes):
     naoBasicas = []
     tam = len(funcaoObjetivo)
     for i in range(tam):
-        if i < tam - tamanho:
+        if(i < tam-tamanho):
             naoBasicas.append(i)
         else:
             basicas.append(i)
     basicas.sort()
     naoBasicas.sort()
-    # Inicio da criaçao da matriz de termos independentes
+    # Inicio da criacao da matriz de termos independentes
     b = []
     for i in range(tamanho):
         b.append(restricoes[i][-1])
@@ -122,11 +145,13 @@ def separa_matriz(funcaoObjetivo, restricoes):
 # Fase II:
 
 # Passo 1 (calculo da solucao basica)
+
 def calculo_relativo(BInv, b):
     return np.matmul(BInv, np.transpose(np.matrix(b)))
 
 # Passo 2 (calculo dos custos relativos)
 # 2.1 vetor multiplicador simplex
+
 def calculo_custo(funcaoObjetivo, variaveis):
     custoBasico = [0] * len(variaveis)
     for i in range(len(custoBasico)):
@@ -137,6 +162,7 @@ def calcula_lambda(custoBasico, basicaInversa):
     return np.matmul(custoBasico, basicaInversa)
 
 # 2.2 custos relativos
+
 def custos_relativos(lambdaSimplex, custoNaoBasico, matrizNaoBasica):
     naoBasicaTransposta = np.transpose(matrizNaoBasica)
     for i in range(len(custoNaoBasico)):
@@ -147,18 +173,18 @@ def custos_relativos(lambdaSimplex, custoNaoBasico, matrizNaoBasica):
 def calcula_k(custoRelativoNaoBasico):
     return custoRelativoNaoBasico.index(min(custoRelativoNaoBasico))
 
-# Passo 3 teste de otimalidade
+# passo 3 teste de otimalidade
 def verificar_otimo(custoRelativoNaoBasico, k):
     return custoRelativoNaoBasico[k] >= 0
 
-# Passo 4 calculo de direcao simplex
+# passo 4 calculo de direcao simplex
 def direcao_simplex(basicaInversa, matrizA, k, naoBasicas):
     colunaK = [matrizA[i][naoBasicas[k]] for i in range(len(matrizA))]
     colunaK = np.transpose(colunaK)
     y = np.matmul(basicaInversa, colunaK)
     return y
 
-# Passo 5 determinacao do passo e variavel a sair da base
+# passo 5 determinacao do passo e variavel a sair da base
 def calcula_l(y, xRelativoBasico):
     seguro = any(y[i] > 0 for i in range(len(y)))
     if not seguro:
@@ -171,12 +197,12 @@ def calcula_l(y, xRelativoBasico):
     l = razoes.index(passo)
     return l
 
-# Passo 6 atualizacao nova particao basica trocando a l-esima coluna de B pela k-esima coluna de N
+# passo 6 atualizacao nova particao basica trocando a l-esima coluna de B pela k-esima coluna de N
 def troca_linhas_k_l(basicas, naoBasicas, k, l):
     basicas[l], naoBasicas[k] = naoBasicas[k], basicas[l]
     return basicas, naoBasicas
 
-# Calculo funcao final
+# calculo funcao final
 def calculo_funcaoZ(funcaoObjetivo, xRelativoBasico, basicas):
     resultado = sum(funcaoObjetivo[basicas[i]] * xRelativoBasico[i] for i in range(len(xRelativoBasico)))
     return resultado
@@ -195,84 +221,60 @@ def calculo_simplex(tipoProblema, funcaoObjetivo, restricoes):
     tamanho = len(funcaoObjetivo)
     if tipoProblema == 'max':
         for i in range(tamanho):
-            funcaoObjetivo[i] *= -1
+            funcaoObjetivo[i] = -funcaoObjetivo[i]
+
     while it < maxit:
-        print(f'\niteracao: {it+1}')
+        print(f"\nIteração {it + 1}:")
         matrizBasica = calcular_submatriz(matrizA, basicas)
         matrizNaoBasica = calcular_submatriz(matrizA, naoBasicas)
-
-        print('MatrizA: ')
-        print_matrizes(matrizA)
-        print('\nBasicas: ', basicas)
-        print('Matriz basica: ')
-        print_matrizes(matrizBasica)
-        print('\nNao basicas: ', naoBasicas)
-        print('Matriz nao basica: ')
-        print_matrizes(matrizNaoBasica)
-        print('\nTermos independentes: ', b)
-
-        matrizBasicaInversa = calcular_inversa(matrizBasica)
-        if matrizBasicaInversa is None:
-            print('Erro ao calcular a inversa da matriz básica')
+        try:
+            basicaInversa = calcular_inversa(matrizBasica)
+        except np.linalg.LinAlgError:
             funciona = False
             break
-
-        xRelativoBasico = calculo_relativo(matrizBasicaInversa, b)
-        print('\nRelativo: ', xRelativoBasico)
-
-        custoBasico = calculo_custo(funcaoObjetivo, basicas)
-        print('Custos basicos: ', custoBasico)
-
-        lambdaSimplex = calcula_lambda(custoBasico, matrizBasicaInversa)
-        print('Lambda: ', lambdaSimplex)
-
-        custoNaoBasico = calculo_custo(funcaoObjetivo, naoBasicas)
-        print('Custos nao basicos: ', custoNaoBasico)
-
-        custoRelativoNaoBasico = custos_relativos(lambdaSimplex, custoNaoBasico, matrizNaoBasica)
-        print('Custos relativos: ', custoRelativoNaoBasico)
-
+        xRelativoBasico = calculo_relativo(basicaInversa, b)
+        lambdaSimplex = calcula_lambda(
+            calculo_custo(funcaoObjetivo, basicas), basicaInversa)
+        custoRelativoNaoBasico = custos_relativos(
+            lambdaSimplex,
+            calculo_custo(funcaoObjetivo, naoBasicas), matrizNaoBasica)
         k = calcula_k(custoRelativoNaoBasico)
-        print('Valor de k: ', k)
         if verificar_otimo(custoRelativoNaoBasico, k):
-            print('Otima: ', xRelativoBasico)
             otima = xRelativoBasico
             break
-
-        direcao = direcao_simplex(matrizBasicaInversa, matrizA, k, naoBasicas)
-        print('Direcao: ', direcao)
-
-        l = calcula_l(direcao, xRelativoBasico)
+        y = direcao_simplex(basicaInversa, matrizA, k, naoBasicas)
+        l = calcula_l(y, xRelativoBasico)
         if l is False:
             funciona = False
             break
-
-        print('Valor de l: ', l)
-
         basicas, naoBasicas = troca_linhas_k_l(basicas, naoBasicas, k, l)
         it += 1
+        print("Variáveis Básicas:", basicas)
+        print("Variáveis Não Básicas:", naoBasicas)
+        print("x Relativo Básico:", xRelativoBasico.flatten())
+        print("Custos Relativos Não Básicos:", custoRelativoNaoBasico)
 
     print_resultado(funciona, otima, basicas, fx)
 
+# Função para ler o arquivo de entrada
 def ler_arquivo(filename):
     with open(filename, 'r') as file:
-        lines = file.readlines()
-
-    tipoProblema = lines[0].strip()
-    funcaoObjetivo = list(map(float, lines[1].strip().split()))
-    restricoes = []
-
-    for line in lines[2:]:
-        parts = line.strip().split()
-        coeficientes = list(map(float, parts[:-2]))
-        sinal = parts[-2]
-        valor = float(parts[-1])
-        restricao = coeficientes + [sinal, valor]
-        restricoes.append(restricao)
-
+        tipoProblema = file.readline().strip()
+        funcaoObjetivo = list(map(float, file.readline().strip().split()))
+        restricoes = []
+        for linha in file:
+            restricao = linha.strip().split()
+            coeficientes = list(map(float, restricao[:-2]))
+            operador = restricao[-2]
+            termoIndependente = float(restricao[-1])
+            restricoes.append(coeficientes + [operador, termoIndependente])
     return tipoProblema, funcaoObjetivo, restricoes
 
-if __name__ == "__main__":
+# Função principal
+def main():
     filename = 'problema.txt'
     tipoProblema, funcaoObjetivo, restricoes = ler_arquivo(filename)
     calculo_simplex(tipoProblema, funcaoObjetivo, restricoes)
+
+if __name__ == "__main__":
+    main()
